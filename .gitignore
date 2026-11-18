@@ -9,3 +9,6 @@ staticfiles/
 *.log
 .DS_Store
 Thumbs.db
+
+# Stray clone of the GitHub repo (pushed by mistake as an empty folder link)
+SkillSwap/
