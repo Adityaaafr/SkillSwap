@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="container">
+  <section class="intro-row">
+    <div>
+      <div class="meta"><span>Staff only</span><span class="sep">·</span>{% now "d M Y, H:i" %}</div>
+      <h1 class="intro-title mt-2">Platform report.</h1>
+    </div>
+    <p class="intro-text">How SkillSwap is doing: who's joining, how requests turn into sessions, and which skills people want that nobody teaches yet.</p>
+    <div class="act"><a href="{% url 'admin:index' %}" class="btn-shadow">Open admin ↗</a></div>
+  </section>
+
+  <div class="numbers numbers-5">
+    <div><div class="n">{{ numbers.members|stringformat:"03d" }}</div><div class="l">Members · {{ numbers.new_members }} new in 30 days</div></div>
+    <div><div class="n">{{ numbers.requests|stringformat:"03d" }}</div><div class="l">Exchange requests</div></div>
+    <div><div class="n">{% if numbers.acceptance is not None %}{{ numbers.acceptance }}%{% else %}–{% endif %}</div><div class="l">Acceptance rate (of answered)</div></div>
+    <div><div class="n">{{ numbers.hours|floatformat:"-1" }}h</div><div class="l">Exchanged · {{ numbers.sessions }} sessions, {{ numbers.upcoming }} upcoming</div></div>
+    <div><div class="n">{% if numbers.rating_avg %}{{ numbers.rating_avg|floatformat:1 }}{% else %}–{% endif %}</div><div class="l">Average rating · {{ numbers.reviews }} reviews</div></div>
+  </div>
+
+  <div class="row gx-4 gy-5">
+    <div class="col-lg-6">
+      <div class="sec-bar"><h2>Requests by status<sup class="count">{{ numbers.requests }}</sup></h2></div>
+      {% for row in status_rows %}
+        <div class="bar-row">
+          <span class="bar-label">{{ row.label }}</span>
+          <span class="bar-track" role="img" aria-label="{{ row.pct }} percent"><span class="bar-fill bar-{{ row.key }}" style="width: {{ row.pct }}%"></span></span>
+          <span class="bar-n">{{ row.n|stringformat:"02d" }}</span>
+        </div>
+      {% endfor %}
+
+      <div class="sec-bar"><h2>Top teachers<sup class="count">{{ teachers|length }}</sup></h2><span class="pager">by completed sessions</span></div>
+      {% for t in teachers %}
+        <a class="ix-row rep-row" href="{% url 'accounts:profile' t.username %}">
+          <span class="ix-n">{{ forloop.counter|stringformat:"02d" }}</span>
+          <span class="ix-name d-flex align-items-center gap-2">{% avatar t 22 %} {{ t.get_full_name|default:t.username }}</span>
+          <span class="ix-stat">{{ t.taught|stringformat:"02d" }} <span class="u">taught</span></span>
+          <span class="ix-stat">{% if t.rating.avg %}{{ t.rating.avg|floatformat:1 }} <span class="u">★</span>{% else %}<span class="u">–</span>{% endif %}</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      {% empty %}
+        <div class="ix-empty">No completed sessions yet.</div>
+      {% endfor %}
+    </div>
+
+    <div class="col-lg-6">
+      <div class="sec-bar"><h2>Skill demand vs supply</h2><span class="pager">most wanted, least taught</span></div>
+      <div class="ix-head rep-row" aria-hidden="true"><span class="m">No.</span><span>Skill</span><span>Want</span><span>Teach</span><span>Gap</span></div>
+      {% for s in demand %}
+        <a class="ix-row rep-row" href="{{ s.get_absolute_url }}">
+          <span class="ix-n">{{ forloop.counter|stringformat:"02d" }}</span>
+          <span class="ix-name">{{ s.name }}{% if not s.teacher_count %}<span class="ix-tag">No teacher</span>{% endif %}</span>
+          <span class="ix-stat">{{ s.learner_count|stringformat:"02d" }}</span>
+          <span class="ix-stat">{{ s.teacher_count|stringformat:"02d" }}</span>
+          <span class="ix-stat {% if s.gap > 0 %}gap-pos{% endif %}">{% if s.gap > 0 %}+{% endif %}{{ s.gap }}</span>
+        </a>
+      {% empty %}
+        <div class="ix-empty">No skills listed yet.</div>
+      {% endfor %}
+
+      <div class="sec-bar"><h2>Newest members</h2></div>
+      {% for m in newest %}
+        <a class="ix-row new-row" href="{% url 'accounts:profile' m.username %}">
+          <span class="ix-n">{{ m.date_joined|date:"d.m" }}</span>
+          <span class="ix-name d-flex align-items-center gap-2">{% avatar m 22 %} {{ m.get_full_name|default:m.username }}</span>
+          <span class="ix-desc muted">{{ m.profile.headline|default:"—" }}</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}A peer-to-peer skill exchange{% endblock %}
+{% block content %}
+
+{# 1. Full-width wordmark #}
+<section class="wordmark" aria-labelledby="site-title">
+  <h1 id="site-title" class="visually-hidden">SkillSwap, a peer-to-peer skill exchange</h1>
+  {# Sized so Anton's natural width is ~1000 units; y and height leave room for the "i" dots and the "p" descender. #}
+  <svg viewBox="0 0 1000 276" role="img" aria-label="SkillSwap">
+    <text x="0" y="241" font-size="259" textLength="1000" lengthAdjust="spacingAndGlyphs">skillswap</text>
+  </svg>
+</section>
+
+<div class="container">
+  {# 2. Intro: statement / explanation / action #}
+  <section class="intro-row">
+    <div>
+      <div class="meta"><span>Peer to peer</span><span class="sep">·</span>No money<span class="sep">·</span>Open to all</div>
+      <p class="intro-title luminous" data-luminous title="Click to light it all up">Teach what you know.<br>Learn what you don't.</p>
+    </div>
+    <p class="intro-text">SkillSwap connects people who want to trade knowledge. List the skills you can teach and the ones you're curious about. We'll find the people whose lists fit yours, and you arrange sessions together.</p>
+    <div class="act">
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:dashboard' %}" class="btn-shadow accent">Your dashboard ↗</a>
+      {% else %}
+        <a href="{% url 'accounts:register' %}" class="btn-shadow accent">Join SkillSwap ↗</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="numbers">
+    <div><div class="n">{{ stats.members|stringformat:"03d" }}</div><div class="l">Members</div></div>
+    <div><div class="n">{{ stats.skills|stringformat:"03d" }}</div><div class="l">Skills listed</div></div>
+    <div><div class="n">{{ stats.categories|stringformat:"03d" }}</div><div class="l">Categories</div></div>
+    <div><div class="n">{{ stats.sessions|stringformat:"03d" }}</div><div class="l">Sessions completed</div></div>
+  </div>
+
+  {# 3. Members: horizontal card strip with pager #}
+  {% if members %}
+    <div class="sec-bar">
+      <h2>Members<sup class="count">{{ members|length }}</sup></h2>
+      <div class="pager" data-pager="members">
+        <button type="button" data-dir="-1" aria-label="Previous members">[ ← ]</button>
+        <span><span data-pos>01</span> / {{ members|length|stringformat:"02d" }}</span>
+        <button type="button" data-dir="1" aria-label="Next members">[ → ]</button>
+      </div>
+    </div>
+    <div class="strip" id="members">
+      {% for m in members %}
+        <a class="m-card" href="{% url 'accounts:profile' m.user.username %}">
+          <div class="m-tile" style="--tone: {{ m.user|avatar_colour }}">
+            {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" alt="" width="320" height="256" loading="lazy" decoding="async">{% else %}{% pixel_avatar m.user 144 %}{% endif %}
+            {% if m.user.profile.location %}<span class="m-loc">{{ m.user.profile.location }}</span>{% endif %}
+            {% if m.rating %}<span class="m-rate"><span aria-hidden="true">★</span> {{ m.rating|floatformat:1 }}</span>{% endif %}
+          </div>
+          <div class="m-body">
+            <div class="meta"><span>{{ m.category }}</span><span class="sep">·</span>{{ m.teaches|length }} teach<span class="sep">·</span>{{ m.wants|length }} learn</div>
+            <h3>{{ m.user.get_full_name|default:m.user.username }}</h3>
+            {% if m.user.profile.headline %}<p class="m-headline">{{ m.user.profile.headline }}</p>{% endif %}
+            {% if m.teaches %}
+              <div class="m-row"><span class="m-label">Teaches</span><span class="m-chips">{% for s in m.teaches|slice:":3" %}<span class="skill-badge offer">{{ s.name }}</span>{% endfor %}</span></div>
+            {% endif %}
+            {% if m.wants %}
+              <div class="m-row"><span class="m-label">Wants</span><span class="m-chips">{% for s in m.wants|slice:":3" %}<span class="skill-badge want">{{ s.name }}</span>{% endfor %}</span></div>
+            {% endif %}
+            <span class="bracket m-cta">View profile ↗</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# 4. Featured review #}
+  {% if featured %}
+    {% with ex=featured.session.exchange %}
+    <div class="sec-bar">
+      <h2>From the community</h2>
+      <span class="pager">{{ featured.created_at|date:"d.m.Y" }}</span>
+    </div>
+    <div class="feature-tile" aria-hidden="true">
+      {% if ex.offered_skill %}
+        <span class="ft-word">{{ ex.requested_skill.name }}</span>
+        <span class="ft-swap">⇄</span>
+        <span class="ft-word">{{ ex.offered_skill.name }}</span>
+      {% else %}
+        <span class="ft-word">{{ featured.session.skill.name }}</span>
+      {% endif %}
+    </div>
+    <section class="feature-row">
+      <div>
+        <div class="meta"><span>Review</span><span class="sep">·</span>{% stars featured.rating %}<span class="sep">·</span>{{ featured.session.skill.name }}</div>
+        <h2 class="feature-title">{{ featured.reviewer.first_name|default:featured.reviewer.username }} on a {{ featured.session.skill.name }} session with {{ featured.reviewee.first_name|default:featured.reviewee.username }}</h2>
+      </div>
+      <p class="feature-text">“{{ featured.comment }}”</p>
+      <div class="act"><a href="{% url 'accounts:profile' featured.reviewee.username %}" class="btn-shadow">Meet {{ featured.reviewee.first_name|default:featured.reviewee.username }} ↗</a></div>
+    </section>
+    {% endwith %}
+  {% endif %}
+
+  {# 5. Manifesto: blurs in and highlights key phrases as it scrolls into view #}
+  <div class="sec-bar">
+    <h2>Why swap</h2>
+    <span class="pager">No money involved</span>
+  </div>
+  <p class="manifesto" data-blur-highlight>
+    <mark style="--i: 0">No money changes hands</mark> on SkillSwap. Everyone here is
+    <mark style="--i: 1">both a learner and a mentor</mark>: you teach what you know, learn what you don't,
+    and <mark style="--i: 2">every hour you give comes back</mark> as an hour you get.
+  </p>
+
+  {# 6. Swap map: members' cities, with signals arcing along real exchanges #}
+  {% if swap_map.points %}
+    <div class="sec-bar">
+      <h2>Swap map<sup class="count">{{ swap_map.points|length }}</sup></h2>
+      <span class="pager">{{ swap_map.routes|length }} route{{ swap_map.routes|length|pluralize }} between cities</span>
+    </div>
+    {% load static %}
+    <div class="swap-map" data-signal-map data-source="swap-map-data" data-src="{% static 'js/signal-map.js' %}?v=1">
+      <div class="swap-map-frame">
+        <canvas class="swap-map-canvas" role="img" aria-label="Map of India with {{ swap_map.points|length }} member cities and the swaps between them"></canvas>
+        <p class="swap-map-hint caps muted">Hover a city · click to send a signal</p>
+      </div>
+      <ol class="swap-map-list" aria-label="Member cities">
+        {% for p in swap_map.points %}
+          <li data-city="{{ p.id }}" tabindex="0">
+            <span class="ix-n">{{ forloop.counter|stringformat:"02d" }}</span>
+            <span class="city">{{ p.label }}</span>
+            <span class="ix-stat">{{ p.members|stringformat:"02d" }} <span class="u">member{{ p.members|pluralize }}</span></span>
+            <span class="ix-stat">{{ p.swaps|stringformat:"02d" }} <span class="u">swap{{ p.swaps|pluralize }}</span></span>
+          </li>
+        {% endfor %}
+      </ol>
+    </div>
+    {{ swap_map|json_script:"swap-map-data" }}
+  {% endif %}
+
+  {# 7. The index #}
+  {% url 'skills:list' as explore_url %}
+  {% include "skills/_index.html" with form_action=explore_url %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* Card strip pager: arrows scroll one card; the counter follows the scroll position. */
+  document.querySelectorAll("[data-pager]").forEach(function (pager) {
+    var strip = document.getElementById(pager.getAttribute("data-pager"));
+    if (!strip) return;
+    var pos = pager.querySelector("[data-pos]");
+    var buttons = pager.querySelectorAll("button");
+    function step() {
+      var card = strip.firstElementChild;
+      return card ? card.getBoundingClientRect().width + 16 : strip.clientWidth;
+    }
+    function update() {
+      var i = Math.round(strip.scrollLeft / step()) + 1;
+      pos.textContent = String(Math.min(i, strip.children.length)).padStart(2, "0");
+      buttons[0].disabled = strip.scrollLeft <= 2;
+      buttons[1].disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
+    }
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        strip.scrollBy({ left: step() * Number(b.getAttribute("data-dir")), behavior: "smooth" });
+      });
+    });
+    strip.addEventListener("scroll", update, { passive: true });
+    update();
+  });
+</script>
+{% endblock %}

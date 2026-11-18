@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}{% if active_category %}{{ active_category.name }}{% else %}Explore skills{% endif %}{% endblock %}
+{% block content %}
+<div class="container">
+  <section class="intro-row">
+    <div>
+      <div class="meta"><span>Explore</span><span class="sep">·</span>{{ total_skills }} skills<span class="sep">·</span>{{ categories|length }} categories</div>
+      <h1 class="intro-title mt-2">{% if active_category %}{{ active_category.name }}{% else %}Find something to learn.{% endif %}</h1>
+    </div>
+    <p class="intro-text">{% if active_category.description %}{{ active_category.description }}{% else %}Every skill on SkillSwap, with how many members teach it and how many want to learn it. Open one to see who teaches it.{% endif %}</p>
+    <div class="act">
+      {% if user.is_authenticated %}<a href="{% url 'skills:my_skills' %}" class="btn-shadow">My skills ↗</a>{% else %}<a href="{% url 'accounts:register' %}" class="btn-shadow accent">Join to swap ↗</a>{% endif %}
+    </div>
+  </section>
+
+  {% if people %}
+    <div class="sec-bar">
+      <h2>People who teach “{{ query }}”<sup class="count">{{ people|length }}</sup></h2>
+    </div>
+    {% for person in people %}
+      <a class="ix-row" href="{% url 'accounts:profile' person.username %}" style="grid-template-columns: 52px minmax(150px, 1.1fr) minmax(0, 2.6fr) 24px">
+        <span>{% avatar person 24 %}</span>
+        <span class="ix-name">{{ person.get_full_name|default:person.username }}</span>
+        <span class="ix-desc">Teaches {{ person.teaches|join:", " }}</span>
+        <span class="ix-go" aria-hidden="true">↗</span>
+      </a>
+    {% endfor %}
+  {% endif %}
+
+  {% include "skills/_index.html" %}
+</div>
+{% endblock %}

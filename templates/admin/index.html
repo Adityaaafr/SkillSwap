@@ -1,0 +1,15 @@
+{% extends "admin/index.html" %}
+{% comment %}Adds a link to the SkillSwap reports page above the usual admin app list.{% endcomment %}
+{% block content %}
+<div class="module" style="margin-bottom: 20px;">
+  <table style="width: 100%;">
+    <caption>Reports</caption>
+    <tr>
+      <th scope="row"><a href="{% url 'core:reports' %}">Platform report</a></th>
+      <td>Members, request funnel, sessions and skill demand at a glance.</td>
+      <td><a href="{% url 'core:reports' %}" class="viewlink">View</a></td>
+    </tr>
+  </table>
+</div>
+{{ block.super }}
+{% endblock %}

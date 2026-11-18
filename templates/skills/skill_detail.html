@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}{{ skill.name }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{% url 'skills:list' %}">Explore</a></li>
+      <li class="breadcrumb-item"><a href="{{ skill.category.get_absolute_url }}">{{ skill.category.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ skill.name }}</li>
+    </ol>
+  </nav>
+
+  <div class="card p-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+      <div class="icon-tile icon-tile-lg"><i class="bi bi-{{ skill.category.icon|default:'grid' }}"></i></div>
+      <div class="flex-grow-1">
+        <h1 class="h3 fw-bold mb-1">{{ skill.name }}</h1>
+        <p class="text-muted mb-0">{{ skill.description|default:skill.category.name }}</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% if not user.is_authenticated %}
+          <a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}" class="btn btn-primary">Log in to add this skill</a>
+        {% elif my_kind == "offer" %}
+          <span class="skill-badge offer"><i class="bi bi-check2"></i> You teach this</span>
+        {% elif my_kind == "want" %}
+          <span class="skill-badge want"><i class="bi bi-check2"></i> On your learning list</span>
+        {% else %}
+          <form method="post" action="{% url 'skills:my_skills' %}">
+            {% csrf_token %}
+            <input type="hidden" name="skill" value="{{ skill.pk }}">
+            <input type="hidden" name="kind" value="want">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button class="btn btn-outline-primary" type="submit"><i class="bi bi-lightbulb me-1"></i> I want to learn this</button>
+          </form>
+          <a href="{% url 'skills:my_skills' %}?skill={{ skill.pk }}&kind=offer" class="btn btn-primary"><i class="bi bi-mortarboard me-1"></i> I can teach this</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card p-3 p-md-4">
+        <h2 class="h5 fw-bold mb-3">People who teach {{ skill.name }} <span class="text-muted fw-normal">({{ teachers|length }})</span></h2>
+        {% for t in teachers %}
+          <div class="d-flex flex-wrap align-items-center gap-3 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+            {% avatar t.user 48 %}
+            <div class="flex-grow-1">
+              <a href="{% url 'accounts:profile' t.user.username %}" class="fw-semibold text-body">{{ t.user.get_full_name|default:t.user.username }}</a>
+              <span class="badge rounded-pill level-{{ t.level }} ms-1">{{ t.get_level_display }}</span>
+              <div class="small text-muted">{{ t.note|default:t.user.profile.headline }}</div>
+              <div class="small">{% stars t.rating.avg t.rating.count %}</div>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{% url 'accounts:profile' t.user.username %}" class="btn btn-sm btn-outline-secondary">Profile</a>
+              {% if user.is_authenticated and t.user != user %}
+                <a href="{% url 'exchange:create' t.user.username %}?skill={{ skill.pk }}" class="btn btn-sm btn-primary">Request</a>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="empty-state">
+            <i class="bi bi-mortarboard"></i>
+            <p class="mb-0">Nobody teaches {{ skill.name }} yet. Could it be you?</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card p-3 p-md-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">Want to learn it <span class="text-muted fw-normal">({{ learners|length }})</span></h2>
+        <div class="d-flex flex-wrap gap-2">
+          {% for l in learners %}
+            <a href="{% url 'accounts:profile' l.user.username %}" class="person-chip text-decoration-none text-body">{% avatar l.user 28 %}<span class="small">{{ l.user.first_name|default:l.user.username }}</span></a>
+          {% empty %}
+            <p class="small text-muted mb-0">No one yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% if related %}
+        <div class="card p-3 p-md-4">
+          <h2 class="h6 fw-bold mb-3">More in {{ skill.category.name }}</h2>
+          <div class="d-flex flex-wrap gap-2">
+            {% for r in related %}<a href="{{ r.get_absolute_url }}" class="skill-badge neutral text-decoration-none">{{ r.name }}</a>{% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

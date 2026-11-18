@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Edit profile{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 860px">
+  <h1 class="h3 fw-bold mb-4">Edit profile</h1>
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <div class="card p-4 mb-4">
+      <h2 class="h6 section-title mb-3">Account</h2>
+      {% include "partials/_form_errors.html" with form=user_form %}
+      <div class="row">
+        <div class="col-sm-6">{% with field=user_form.first_name %}{% include "partials/_field.html" %}{% endwith %}</div>
+        <div class="col-sm-6">{% with field=user_form.last_name %}{% include "partials/_field.html" %}{% endwith %}</div>
+      </div>
+      {% with field=user_form.email %}{% include "partials/_field.html" %}{% endwith %}
+    </div>
+    <div class="card p-4 mb-4">
+      <h2 class="h6 section-title mb-3">Profile</h2>
+      {% include "partials/_form_errors.html" with form=profile_form %}
+      <div class="d-flex align-items-center gap-3 mb-3">
+        {% avatar user 64 %}
+        <div class="flex-grow-1">{% with field=profile_form.avatar %}{% include "partials/_field.html" %}{% endwith %}</div>
+      </div>
+      {% with field=profile_form.headline %}{% include "partials/_field.html" %}{% endwith %}
+      {% with field=profile_form.bio %}{% include "partials/_field.html" %}{% endwith %}
+      <div class="row">
+        <div class="col-sm-6">{% with field=profile_form.location %}{% include "partials/_field.html" %}{% endwith %}</div>
+        <div class="col-sm-6">{% with field=profile_form.availability %}{% include "partials/_field.html" %}{% endwith %}</div>
+      </div>
+    </div>
+    <div class="card p-4 mb-4">
+      <h2 class="h6 section-title mb-3">Pixel avatar</h2>
+      <p class="small text-muted mt-0">Shown on your member card and next to your name whenever you haven't uploaded a photo. “Automatic” picks a style for you.</p>
+      <div class="px-picker">
+        <div class="px-preview" style="--tone: {{ user|avatar_colour }}">
+          <img id="px-preview" src="{% url 'core:avatar_preview' %}?hair={{ profile_form.pixel_hair.value|default:'' }}&amp;colour={{ profile_form.pixel_hair_colour.value|default:'' }}&amp;skin={{ profile_form.pixel_skin.value|default:'' }}&amp;extra={{ profile_form.pixel_extra.value|default:'' }}" width="160" height="160" alt="Preview of your pixel avatar">
+        </div>
+        <div class="px-fields">
+          {% with field=profile_form.pixel_hair %}{% include "partials/_field.html" %}{% endwith %}
+          {% with field=profile_form.pixel_hair_colour %}{% include "partials/_field.html" %}{% endwith %}
+          {% with field=profile_form.pixel_skin %}{% include "partials/_field.html" %}{% endwith %}
+          {% with field=profile_form.pixel_extra %}{% include "partials/_field.html" %}{% endwith %}
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a href="{% url 'accounts:profile' user.username %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* Update the pixel-avatar preview as the options change. */
+  (function () {
+    var img = document.getElementById("px-preview");
+    if (!img) return;
+    var base = img.src.split("?")[0];
+    var map = { pixel_hair: "hair", pixel_hair_colour: "colour", pixel_skin: "skin", pixel_extra: "extra" };
+    var selects = document.querySelectorAll("[data-px]");
+    function refresh() {
+      var params = new URLSearchParams();
+      selects.forEach(function (s) { params.set(map[s.dataset.px], s.value); });
+      img.src = base + "?" + params.toString();
+    }
+    selects.forEach(function (s) { s.addEventListener("change", refresh); });
+  })();
+</script>
+{% endblock %}

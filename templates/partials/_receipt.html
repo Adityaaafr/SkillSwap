@@ -1,0 +1,32 @@
+{% load swap_tags %}
+{% comment %}
+  A thermal-printer receipt. Pass `receipt` (title, subtitle, number, stamp, lines, footer, code) and
+  `autoplay` (print as soon as it scrolls into view). Without JavaScript, or with reduced motion,
+  the receipt is simply shown already printed.
+{% endcomment %}
+<figure class="printer" data-receipt data-autoplay="{{ autoplay|yesno:'1,0' }}">
+  <div class="printer-stage">
+    <div class="receipt" role="group" aria-label="{{ receipt.subtitle }} number {{ receipt.number }}">
+      <div class="receipt-paper">
+        <p class="r-title">{{ receipt.title }}</p>
+        <p class="r-sub">{{ receipt.subtitle }}</p>
+        <div class="r-row r-meta"><span>No. {{ receipt.number }}</span><span>{{ receipt.stamp }}</span></div>
+        <hr class="r-div">
+        {% for line in receipt.lines %}
+          {% if line.kind == "divider" %}<hr class="r-div">
+          {% elif line.kind == "heading" %}<p class="r-heading">{{ line.label }}</p>
+          {% elif line.kind == "total" %}<div class="r-row r-total"><span>{{ line.label }}</span><span>{{ line.value }}</span></div>
+          {% else %}<div class="r-row"><span>{{ line.label }}</span><span>{{ line.value }}</span></div>{% endif %}
+        {% endfor %}
+        <div class="r-barcode" aria-hidden="true">{% for bar in receipt.code|barcode_bars %}<i style="width: {{ bar.w }}px"{% if bar.on %} class="on"{% endif %}></i>{% endfor %}</div>
+        <p class="r-code">{{ receipt.code }}</p>
+        <p class="r-foot">{{ receipt.footer }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="printer-body" aria-hidden="true"><span class="printer-slot"></span><span class="printer-led"></span></div>
+  <figcaption class="printer-actions">
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-receipt-print>Print again</button>
+    <span class="caps muted" data-receipt-hint>Drag up to tear off</span>
+  </figcaption>
+</figure>

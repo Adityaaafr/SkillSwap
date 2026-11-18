@@ -1,0 +1,11 @@
+<div class="d-flex align-items-center gap-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+  <div class="flex-grow-1">
+    <a href="{{ us.skill.get_absolute_url }}" class="fw-semibold text-body">{{ us.skill.name }}</a>
+    {% if us.level %}<span class="badge rounded-pill level-{{ us.level }} ms-1">{{ us.get_level_display }}</span>{% endif %}
+    <div class="small text-muted">{{ us.skill.category.name }}{% if us.note %} · {{ us.note }}{% endif %}</div>
+  </div>
+  <form method="post" action="{% url 'skills:my_skill_delete' us.pk %}" onsubmit="return confirm('Remove {{ us.skill.name|escapejs }} from your skills?');">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Remove {{ us.skill.name }}"><i class="bi bi-trash"></i></button>
+  </form>
+</div>

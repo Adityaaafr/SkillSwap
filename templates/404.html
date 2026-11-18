@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Page not found{% endblock %}
+{% block content %}
+<div class="container">
+  <p class="error-code" aria-hidden="true">4<span>0</span>4</p>
+  <section class="intro-row">
+    <div>
+      <div class="meta"><span>Error 404</span><span class="sep">·</span>Page not found</div>
+      <h1 class="intro-title mt-2">This page doesn't exist.</h1>
+    </div>
+    <p class="intro-text">The link may be old, or the page was never here. Exchanges and sessions are only visible to the two people taking part, so you might also need to log in with a different account.</p>
+    <div class="act"><a href="{% url 'skills:list' %}" class="btn-shadow accent">Explore skills ↗</a></div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}{{ person.get_full_name|default:person.username }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card p-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-4">
+      {% avatar person 96 %}
+      <div class="flex-grow-1">
+        <h1 class="h3 fw-bold mb-1">{{ person.get_full_name|default:person.username }}</h1>
+        <div class="text-muted mb-2">@{{ person.username }}{% if person.profile.headline %} · {{ person.profile.headline }}{% endif %}</div>
+        <div class="d-flex flex-wrap gap-3 small text-muted">
+          <span>{% stars rating.avg rating.count %}</span>
+          {% if person.profile.location %}<span><i class="bi bi-geo-alt me-1"></i>{{ person.profile.location }}</span>{% endif %}
+          {% if person.profile.availability %}<span><i class="bi bi-clock me-1"></i>{{ person.profile.availability }}</span>{% endif %}
+          <span><i class="bi bi-check2-circle me-1"></i>{{ completed_sessions }} completed session{{ completed_sessions|pluralize }}</span>
+          <span><i class="bi bi-calendar3 me-1"></i>Joined {{ person.date_joined|date:"M Y" }}</span>
+        </div>
+      </div>
+      <div>
+        {% if is_own %}
+          <a href="{% url 'accounts:profile_edit' %}" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i> Edit profile</a>
+        {% elif user.is_authenticated %}
+          {% if offers %}
+            <a href="{% url 'exchange:create' person.username %}" class="btn btn-primary"><i class="bi bi-send me-1"></i> Request a swap</a>
+          {% else %}
+            <button class="btn btn-primary" disabled title="They haven't listed any skills to teach yet"><i class="bi bi-send me-1"></i> Request a swap</button>
+          {% endif %}
+        {% else %}
+          <a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}" class="btn btn-primary">Log in to request a swap</a>
+        {% endif %}
+      </div>
+    </div>
+    {% if person.profile.bio %}<p class="mt-4 mb-0 bio">{{ person.profile.bio|linebreaksbr }}</p>{% endif %}
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card p-3 p-md-4 mb-4">
+        <h2 class="h5 fw-bold mb-3"><i class="bi bi-mortarboard text-success me-1"></i> Can teach</h2>
+        {% for us in offers %}
+          <div class="d-flex justify-content-between align-items-start gap-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+            <div>
+              <a href="{{ us.skill.get_absolute_url }}" class="fw-semibold text-body">{{ us.skill.name }}</a>
+              {% if us.skill_id in viewer_wants %}<span class="badge text-bg-warning ms-1">You want this</span>{% endif %}
+              <div class="small text-muted">{{ us.skill.category.name }}{% if us.note %} · {{ us.note }}{% endif %}</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge rounded-pill level-{{ us.level }}">{{ us.get_level_display }}</span>
+              {% if user.is_authenticated and not is_own %}
+                <a href="{% url 'exchange:create' person.username %}?skill={{ us.skill_id }}" class="btn btn-sm btn-outline-primary" aria-label="Ask to learn {{ us.skill.name }}">Ask to learn</a>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-muted small mb-0">No skills listed yet.</p>
+        {% endfor %}
+      </div>
+
+      <div class="card p-3 p-md-4">
+        <h2 class="h5 fw-bold mb-3"><i class="bi bi-chat-quote text-primary me-1"></i> Reviews</h2>
+        {% for review in reviews %}
+          <div class="d-flex gap-3 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+            {% avatar review.reviewer 36 %}
+            <div class="flex-grow-1">
+              <div class="d-flex flex-wrap justify-content-between gap-2">
+                <a href="{% url 'accounts:profile' review.reviewer.username %}" class="fw-semibold text-body">{{ review.reviewer.get_full_name|default:review.reviewer.username }}</a>
+                <span class="small text-muted">{{ review.created_at|date:"d M Y" }}</span>
+              </div>
+              <div class="small mb-1">{% stars review.rating %} <span class="text-muted">· {{ review.session.skill.name }}</span></div>
+              {% if review.comment %}<p class="mb-0 small">{{ review.comment }}</p>{% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-muted small mb-0">No reviews yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card p-3 p-md-4">
+        <h2 class="h5 fw-bold mb-3"><i class="bi bi-lightbulb text-primary me-1"></i> Wants to learn</h2>
+        <div class="d-flex flex-wrap gap-2">
+          {% for us in wants %}
+            <a href="{{ us.skill.get_absolute_url }}" class="skill-badge want text-decoration-none {% if us.skill_id in viewer_offers %}match{% endif %}">{{ us.skill.name }}{% if us.skill_id in viewer_offers %} <i class="bi bi-check2"></i>{% endif %}</a>
+          {% empty %}
+            <p class="text-muted small mb-0">Nothing listed yet.</p>
+          {% endfor %}
+        </div>
+        {% if viewer_offers and wants %}<p class="small text-muted mt-3 mb-0">Skills outlined in orange are ones you can teach.</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

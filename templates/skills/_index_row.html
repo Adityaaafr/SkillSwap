@@ -1,0 +1,8 @@
+<a class="ix-row" href="{{ skill.get_absolute_url }}">
+  <span class="ix-n">{{ skill.number|stringformat:"03d" }}</span>
+  <span class="ix-name">{{ skill.name }}{% if skill.pk in my_wants %} <span class="dot" title="On your learning list"></span>{% elif skill.pk in my_offers %}<span class="ix-tag">You teach</span>{% endif %}</span>
+  <span class="ix-desc">{{ skill.description|default:skill.category.name }}</span>
+  <span class="ix-stat">{{ skill.teacher_count|stringformat:"02d" }} <span class="u">teach</span></span>
+  <span class="ix-stat">{{ skill.learner_count|stringformat:"02d" }} <span class="u">want</span></span>
+  <span class="ix-go" aria-hidden="true">↗</span>
+</a>

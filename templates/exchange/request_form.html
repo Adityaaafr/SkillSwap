@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Request a swap{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 720px">
+  <a href="{% url 'accounts:profile' receiver.username %}" class="small"><i class="bi bi-arrow-left"></i> Back to profile</a>
+  <h1 class="h3 fw-bold mt-2 mb-4">Request a skill swap</h1>
+
+  <div class="card p-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      {% avatar receiver 48 %}
+      <div>
+        <div class="fw-semibold">{{ receiver.get_full_name|default:receiver.username }}</div>
+        <div class="small text-muted">{{ receiver.profile.headline }}{% if receiver.profile.availability %} · <i class="bi bi-clock"></i> {{ receiver.profile.availability }}{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if not has_offers %}
+    <div class="alert alert-info small">
+      <i class="bi bi-lightbulb me-1"></i> You haven't listed anything you can teach, so this will be a one-way request.
+      <a href="{% url 'skills:my_skills' %}">Add a skill you can teach</a> to offer a swap.
+    </div>
+  {% endif %}
+
+  <form method="post" class="card p-4" novalidate>
+    {% csrf_token %}
+    {% include "partials/_form_errors.html" %}
+    {% with field=form.requested_skill %}{% include "partials/_field.html" %}{% endwith %}
+    {% if has_offers %}{% with field=form.offered_skill %}{% include "partials/_field.html" %}{% endwith %}{% endif %}
+    {% with field=form.message %}{% include "partials/_field.html" %}{% endwith %}
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i> Send request</button>
+      <a href="{% url 'accounts:profile' receiver.username %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

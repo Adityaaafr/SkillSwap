@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Exchange with {{ other.get_full_name|default:other.username }}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 960px">
+  <a href="{% url 'exchange:list' %}{% if is_sender %}?tab=outgoing{% endif %}" class="small"><i class="bi bi-arrow-left"></i> All requests</a>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-2 mb-4">
+    <h1 class="h3 fw-bold mb-0">Exchange with {{ other.get_full_name|default:other.username }}</h1>
+    {% include "partials/_status_badge.html" with status=exchange.status label=exchange.get_status_display %}
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card p-4 mb-4">
+        <div class="swap-grid">
+          <div class="swap-side">
+            {% avatar exchange.receiver 48 %}
+            <div>
+              <div class="small text-muted">{% if is_sender %}{{ exchange.receiver.first_name|default:exchange.receiver.username }} teaches you{% else %}You teach{% endif %}</div>
+              <a href="{{ exchange.requested_skill.get_absolute_url }}" class="fw-semibold">{{ exchange.requested_skill.name }}</a>
+            </div>
+          </div>
+          <div class="swap-arrow"><i class="bi bi-arrow-left-right"></i></div>
+          <div class="swap-side">
+            {% avatar exchange.sender 48 %}
+            <div>
+              {% if exchange.offered_skill %}
+                <div class="small text-muted">{% if is_sender %}You teach{% else %}{{ exchange.sender.first_name|default:exchange.sender.username }} teaches you{% endif %}</div>
+                <a href="{{ exchange.offered_skill.get_absolute_url }}" class="fw-semibold">{{ exchange.offered_skill.name }}</a>
+              {% else %}
+                <div class="small text-muted">In return</div>
+                <span class="fw-semibold text-muted">Nothing offered (one-way)</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+        <div class="d-flex gap-3">
+          {% avatar exchange.sender 36 %}
+          <div>
+            <div class="small text-muted mb-1">
+              <a href="{% url 'accounts:profile' exchange.sender.username %}" class="fw-semibold text-body">{% if is_sender %}You{% else %}{{ exchange.sender.get_full_name|default:exchange.sender.username }}{% endif %}</a>
+              wrote · {{ exchange.created_at|date:"d M Y, H:i" }}
+            </div>
+            <p class="mb-0 message-bubble">{{ exchange.message|linebreaksbr }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-4">
+        <div class="card-head d-flex justify-content-between align-items-center">
+          <h2>Learning sessions<sup class="count">{{ sessions|length }}</sup></h2>
+          {% if exchange.status == "accepted" %}<a href="{% url 'exchange:session_create' exchange.pk %}" class="bracket">Schedule a session +</a>{% endif %}
+        </div>
+        {% for s in sessions %}
+          <a href="{% url 'exchange:session_detail' s.pk %}" class="request-row d-flex flex-wrap align-items-center gap-3 py-2 text-body {% if not forloop.last %}border-bottom{% endif %}">
+            <div class="date-chip"><div class="date-day">{{ s.scheduled_at|date:"d" }}</div><div class="date-month">{{ s.scheduled_at|date:"M" }}</div></div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ s.skill.name }}</div>
+              <div class="small text-muted">
+                {% if s.teacher == user %}You teach{% else %}{{ s.teacher.first_name|default:s.teacher.username }} teaches you{% endif %}
+                · {{ s.scheduled_at|date:"D d M, H:i" }} · {{ s.duration_minutes }} min · {{ s.get_mode_display }}
+              </div>
+            </div>
+            {% if s.needs_confirmation %}
+              {% include "partials/_status_badge.html" with status="pending" label="To confirm" %}
+            {% else %}
+              {% include "partials/_status_badge.html" with status=s.status label=s.get_status_display %}
+            {% endif %}
+          </a>
+        {% empty %}
+          <p class="text-muted small mb-0">
+            {% if exchange.status == "accepted" %}No sessions yet. <a href="{% url 'exchange:session_create' exchange.pk %}">Schedule the first one</a> with {{ other.first_name|default:other.username }}.
+            {% elif exchange.status == "pending" %}Sessions can be scheduled once the request is accepted.
+            {% else %}No sessions took place in this exchange.{% endif %}
+          </p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card p-4 mb-4">
+        <h2 class="h6 section-title mb-3">What happens next</h2>
+        {% if can_respond %}
+          <p class="small">{{ other.first_name|default:other.username }} would like to learn from you. Accepting lets you schedule sessions together.</p>
+          <div class="d-grid gap-2">
+            <form method="post" action="{% url 'exchange:action' exchange.pk 'accept' %}">{% csrf_token %}
+              <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check2 me-1"></i> Accept request</button>
+            </form>
+            <form method="post" action="{% url 'exchange:action' exchange.pk 'reject' %}" onsubmit="return confirm('Decline this request?');">{% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger w-100">Decline</button>
+            </form>
+          </div>
+        {% elif can_cancel %}
+          <p class="small">Waiting for {{ other.first_name|default:other.username }} to reply. You can cancel the request until they do.</p>
+          <form method="post" action="{% url 'exchange:action' exchange.pk 'cancel' %}" onsubmit="return confirm('Cancel this request?');">{% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger w-100">Cancel request</button>
+          </form>
+        {% elif can_complete %}
+          <p class="small">Your exchange is active. Book sessions together, and when you've finished them all, mark the exchange as completed.</p>
+          <a href="{% url 'exchange:session_create' exchange.pk %}" class="btn btn-primary mb-3">Schedule a session</a>
+          <form method="post" action="{% url 'exchange:action' exchange.pk 'complete' %}">{% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-patch-check me-1"></i> Mark exchange completed</button>
+          </form>
+        {% elif exchange.status == "completed" %}
+          <p class="small mb-0">This exchange is complete. Thanks for sharing what you know!</p>
+        {% elif exchange.status == "rejected" %}
+          <p class="small mb-0">{% if is_sender %}{{ other.first_name|default:other.username }} declined this request. Try someone else who teaches {{ exchange.requested_skill.name }}.{% else %}You declined this request.{% endif %}</p>
+          {% if is_sender %}<a href="{{ exchange.requested_skill.get_absolute_url }}" class="btn btn-sm btn-outline-primary mt-3">Find other teachers</a>{% endif %}
+        {% else %}
+          <p class="small mb-0">This request was cancelled.</p>
+        {% endif %}
+      </div>
+
+      <div class="card p-4">
+        <h2 class="h6 section-title mb-3">Timeline</h2>
+        <ul class="timeline list-unstyled small mb-0">
+          <li><span class="dot"></span>Sent · {{ exchange.created_at|date:"d M Y, H:i" }}</li>
+          {% if exchange.responded_at %}<li><span class="dot"></span>{% if exchange.status == "rejected" %}Declined{% else %}Accepted{% endif %} ·{{ exchange.responded_at|date:"d M Y, H:i" }}</li>{% endif %}
+          {% if exchange.completed_at %}<li><span class="dot"></span>Completed · {{ exchange.completed_at|date:"d M Y, H:i" }}</li>{% endif %}
+        </ul>
+        <hr>
+        <a href="{% url 'accounts:profile' other.username %}" class="small">View {{ other.first_name|default:other.username }}'s profile <i class="bi bi-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

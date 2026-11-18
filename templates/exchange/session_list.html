@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Sessions{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+      <h1 class="mb-1">Learning sessions</h1>
+      <p class="text-muted mb-0">Everything you're teaching and learning, past and upcoming.</p>
+    </div>
+    <a href="{% url 'exchange:list' %}?tab=incoming&status=active" class="btn btn-primary">Schedule from an exchange</a>
+  </div>
+
+  <ul class="nav nav-tabs mb-0">
+    {% for key, label, count in tabs %}
+      <li class="nav-item">
+        <a class="nav-link {% if tab == key %}active{% endif %}" href="?tab={{ key }}">
+          {{ label }} <span class="text-muted">({{ count }})</span>
+          {% if key == "confirm" and count %}<span class="count-dot">!</span>{% endif %}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% if tab == "confirm" and sessions %}
+    <p class="small text-muted mt-3 mb-0">These sessions have started. Mark each one as done once it's finished. That unlocks reviews and counts towards completing the exchange.</p>
+  {% endif %}
+
+  <div class="card mt-3">
+    {% for s in sessions %}
+      {% with other=s|session_other:user %}
+      <a href="{% url 'exchange:session_detail' s.pk %}" class="request-row d-flex flex-wrap align-items-center gap-3 p-3 text-body {% if not forloop.last %}border-bottom{% endif %}">
+        <div class="date-chip"><div class="date-day">{{ s.scheduled_at|date:"d" }}</div><div class="date-month">{{ s.scheduled_at|date:"M" }}</div></div>
+        <div class="flex-grow-1" style="min-width: 220px">
+          <div><strong>{{ s.skill.name }}</strong> · {% if s.teacher == user %}you teach {{ other.get_full_name|default:other.username }}{% else %}{{ other.get_full_name|default:other.username }} teaches you{% endif %}</div>
+          <div class="small text-muted">{{ s.scheduled_at|date:"D d M Y" }} · {{ s.scheduled_at|time:"H:i" }}–{{ s.ends_at|time:"H:i" }} · {{ s.get_mode_display }}</div>
+        </div>
+        {% if s.needs_confirmation %}
+          {% include "partials/_status_badge.html" with status="pending" label="To confirm" %}
+        {% elif s.status == "completed" and s.pk not in reviewed_ids %}
+          {% include "partials/_status_badge.html" with status="pending" label="Review due" %}
+        {% else %}
+          {% include "partials/_status_badge.html" with status=s.status label=s.get_status_display %}
+        {% endif %}
+        <span class="text-muted d-none d-sm-inline" aria-hidden="true">↗</span>
+      </a>
+      {% endwith %}
+    {% empty %}
+      <div class="empty-state">
+        {% if tab == "upcoming" %}No upcoming sessions. Open an accepted exchange and choose “Schedule a session”.
+        {% elif tab == "confirm" %}Nothing to confirm. You're all caught up.
+        {% else %}No past sessions yet.{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

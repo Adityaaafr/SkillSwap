@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Activity{% endblock %}
+{% block content %}
+<div class="container">
+  <section class="intro-row">
+    <div>
+      <div class="meta"><span>Activity</span><span class="sep">·</span>Member since {{ user.date_joined|date:"M Y" }}</div>
+      <h1 class="intro-title mt-2">Your learning history.</h1>
+    </div>
+    <p class="intro-text">Every request, session and review you've been part of, newest first. It's built straight from your exchanges, so it's always up to date.</p>
+    <div class="act"><a href="{% url 'accounts:profile' user.username %}" class="btn-shadow">Public profile ↗</a></div>
+  </section>
+
+  <div class="numbers numbers-5">
+    <div><div class="n">{{ summary.taught_hours|floatformat:"-1" }}h</div><div class="l">Taught · {{ summary.taught_sessions }} session{{ summary.taught_sessions|pluralize }}</div></div>
+    <div><div class="n">{{ summary.learned_hours|floatformat:"-1" }}h</div><div class="l">Learned · {{ summary.learned_sessions }} session{{ summary.learned_sessions|pluralize }}</div></div>
+    <div><div class="n">{{ summary.partners|stringformat:"02d" }}</div><div class="l">Learning partners</div></div>
+    <div><div class="n">{{ summary.skills_taught|stringformat:"02d" }}</div><div class="l">Skills taught</div></div>
+    <div><div class="n">{% if summary.rating_avg %}{{ summary.rating_avg|floatformat:1 }}{% else %}–{% endif %}</div><div class="l">Rating · {{ summary.rating_count }} review{{ summary.rating_count|pluralize }}</div></div>
+  </div>
+
+  <div class="row gx-4 gy-5 align-items-start">
+  <div class="col-lg-8">
+  <div class="sec-bar sticky">
+    <h2>History<sup class="count">{{ events|length }}</sup></h2>
+    <nav class="d-flex flex-wrap gap-3" aria-label="Filter history">
+      {% for key, label in event_types %}<a href="?type={{ key }}" class="chip {% if kind == key %}active{% endif %}">{{ label }}</a>{% endfor %}
+    </nav>
+  </div>
+
+  {% regroup events by month as months %}
+  {% for month in months %}
+    <div class="ix-group">{{ month.grouper }}<sup class="count">{{ month.list|length }}</sup></div>
+    {% for e in month.list %}
+      <a class="act-row" href="{{ e.url }}">
+        <span class="act-date">{{ e.when|date:"d M" }}<span class="muted"> {{ e.when|time:"H:i" }}</span></span>
+        <span class="act-kind act-{{ e.kind }}">{{ e.kind }}</span>
+        <span class="act-text">
+          {{ e.text }}{% if e.rating %} <span class="stars">{% for i in "12345" %}{% if forloop.counter <= e.rating %}★{% else %}☆{% endif %}{% endfor %}</span>{% endif %}
+          {% if e.note %}<span class="act-note">“{{ e.note|truncatechars:140 }}”</span>{% endif %}
+        </span>
+        <span class="ix-go" aria-hidden="true">↗</span>
+      </a>
+    {% endfor %}
+  {% empty %}
+    <div class="ix-empty">Nothing here yet. {% if kind == "all" %}<a href="{% url 'skills:list' %}">Find someone to learn from</a> to get started.{% else %}<a href="?type=all">Show everything</a>{% endif %}</div>
+  {% endfor %}
+  </div>
+
+  <aside class="col-lg-4 receipt-col" aria-labelledby="receipt-title">
+    <div class="sec-bar"><h2 id="receipt-title">Your receipt</h2><span class="pager">No. {{ receipt.number }}</span></div>
+    {% include "partials/_receipt.html" with receipt=receipt autoplay=True %}
+  </aside>
+  </div>
+</div>
+{% endblock %}

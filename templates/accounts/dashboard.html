@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      {% avatar user 56 %}
+      <div>
+        <h1 class="h3 fw-bold mb-0">Hi, {{ user.first_name|default:user.username }}</h1>
+        <div class="text-muted small">{% stars rating.avg rating.count %}</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'skills:list' %}" class="btn btn-primary"><i class="bi bi-search me-1"></i> Find people to learn from</a>
+    </div>
+  </div>
+
+  {% if completion < 100 %}
+    <div class="card p-3 p-md-4 mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <div class="fw-semibold">Your profile is {{ completion }}% complete</div>
+        <a href="{% url 'accounts:profile_edit' %}" class="small">Finish your profile <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="progress mb-3" role="progressbar" aria-label="Profile completion" aria-valuenow="{{ completion }}" aria-valuemin="0" aria-valuemax="100" style="height:8px">
+        <div class="progress-bar" style="width: {{ completion }}%"></div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% for step in missing_steps %}<span class="badge rounded-pill text-bg-light border fw-normal"><i class="bi bi-circle me-1"></i>{{ step }}</span>{% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="card stat-card p-3"><div class="text-muted small">Requests waiting</div><div class="stat-value">{{ stats.incoming }}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card stat-card p-3"><div class="text-muted small">Active exchanges</div><div class="stat-value">{{ stats.active }}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card stat-card p-3"><div class="text-muted small">Sessions taught</div><div class="stat-value">{{ stats.taught }}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card stat-card p-3"><div class="text-muted small">Sessions learned</div><div class="stat-value">{{ stats.learned }}</div></div></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card p-3 p-md-4 mb-4">
+        <h2 class="h5 fw-bold mb-1"><i class="bi bi-arrow-left-right text-primary me-1"></i> Suggested swaps</h2>
+        <p class="text-muted small mb-3">People who teach what you want and want what you teach.</p>
+        {% for match in matches %}
+          <div class="d-flex flex-wrap align-items-center gap-3 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+            {% avatar match.user 44 %}
+            <div class="flex-grow-1">
+              <a href="{% url 'accounts:profile' match.user.username %}" class="fw-semibold text-body">{{ match.user.get_full_name|default:match.user.username }}</a>
+              <div class="small text-muted">{{ match.user.profile.headline }}</div>
+              <div class="d-flex flex-wrap gap-1 mt-2">
+                {% for skill in match.can_teach_you %}<span class="skill-badge offer"><i class="bi bi-mortarboard"></i> Teaches {{ skill.name }}</span>{% endfor %}
+                {% for skill in match.wants_from_you %}<span class="skill-badge want"><i class="bi bi-lightbulb"></i> Wants {{ skill.name }}</span>{% endfor %}
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{% url 'accounts:profile' match.user.username %}" class="btn btn-sm btn-outline-secondary">Profile</a>
+              <a href="{% url 'exchange:create' match.user.username %}?skill={{ match.can_teach_you.0.pk }}" class="btn btn-sm btn-primary">Request swap</a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="empty-state">
+            <i class="bi bi-people"></i>
+            <p class="mb-2">No mutual matches yet.</p>
+            <p class="small text-muted mb-3">List at least one skill you can teach and one you want to learn. Matches appear when someone else fits both.</p>
+            <a href="{% url 'skills:my_skills' %}" class="btn btn-sm btn-primary">Update my skills</a>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="card p-3 p-md-4 mb-4">
+        <div class="card-head d-flex justify-content-between align-items-center">
+          <h2>Upcoming sessions</h2>
+          <a href="{% url 'exchange:sessions' %}" class="small">All sessions</a>
+        </div>
+        {% if sessions_to_confirm %}
+          <a href="{% url 'exchange:sessions' %}?tab=confirm" class="alert d-block text-body mb-3">{{ sessions_to_confirm }} session{{ sessions_to_confirm|pluralize }} ha{{ sessions_to_confirm|pluralize:"s,ve" }} started and need{{ sessions_to_confirm|pluralize:"s," }} marking as done →</a>
+        {% endif %}
+        {% for s in upcoming_sessions %}
+          <a href="{% url 'exchange:session_detail' s.pk %}" class="request-row d-flex align-items-center gap-3 py-2 text-body {% if not forloop.last %}border-bottom{% endif %}">
+            <div class="date-chip"><div class="date-day">{{ s.scheduled_at|date:"d" }}</div><div class="date-month">{{ s.scheduled_at|date:"M" }}</div></div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ s.skill.name }}</div>
+              <div class="small text-muted">
+                {% if s.teacher == user %}You teach {{ s.learner.get_full_name|default:s.learner.username }}{% else %}{{ s.teacher.get_full_name|default:s.teacher.username }} teaches you{% endif %}
+                · {{ s.scheduled_at|date:"D" }} {{ s.scheduled_at|time:"H:i" }} · {{ s.duration_minutes }} min · {{ s.get_mode_display }}
+              </div>
+            </div>
+          </a>
+        {% empty %}
+          <p class="text-muted small mb-0">No sessions scheduled. Open an active exchange to book one.</p>
+        {% endfor %}
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="card p-3 p-md-4 h-100">
+            <div class="card-head d-flex justify-content-between align-items-center">
+              <h2 class="h6 fw-bold mb-0"><i class="bi bi-inbox text-primary me-1"></i> Incoming requests</h2>
+              <a href="{% url 'exchange:list' %}" class="small">View all</a>
+            </div>
+            {% for r in incoming_requests %}
+              <a href="{% url 'exchange:detail' r.pk %}" class="d-flex align-items-center gap-2 py-2 text-body {% if not forloop.last %}border-bottom{% endif %}">
+                {% avatar r.sender 32 %}
+                <div class="small flex-grow-1">
+                  <span class="fw-semibold">{{ r.sender.get_full_name|default:r.sender.username }}</span>
+                  wants to learn <strong>{{ r.requested_skill.name }}</strong>{% if r.offered_skill %}, offers <strong>{{ r.offered_skill.name }}</strong>{% endif %}
+                </div>
+                <i class="bi bi-chevron-right text-muted"></i>
+              </a>
+            {% empty %}
+              <p class="text-muted small mb-0">Nothing waiting for you.</p>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3 p-md-4 h-100">
+            <div class="card-head d-flex justify-content-between align-items-center">
+              <h2>Waiting for your review</h2>
+              <a href="{% url 'exchange:activity' %}" class="small">Activity</a>
+            </div>
+            {% for s in sessions_to_review %}
+              <a href="{% url 'exchange:session_review' s.pk %}" class="request-row d-flex align-items-center gap-2 small py-2 text-body {% if not forloop.last %}border-bottom{% endif %}">
+                <span class="flex-grow-1"><strong>{{ s.skill.name }}</strong> with {% if s.teacher == user %}{{ s.learner.get_full_name|default:s.learner.username }}{% else %}{{ s.teacher.get_full_name|default:s.teacher.username }}{% endif %}
+                <span class="text-muted">· {{ s.scheduled_at|date:"d M" }}</span></span>
+                <span class="bracket">Review</span>
+              </a>
+            {% empty %}
+              <p class="text-muted small mb-0">You're all caught up.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card p-3 p-md-4">
+        <div class="card-head d-flex justify-content-between align-items-center">
+          <h2 class="h5 fw-bold mb-0">My skills</h2>
+          <a href="{% url 'skills:my_skills' %}" class="small">Manage</a>
+        </div>
+        <div class="section-title mb-2">I can teach</div>
+        <div class="d-flex flex-wrap gap-1 mb-3">
+          {% for us in offers %}<a href="{{ us.skill.get_absolute_url }}" class="skill-badge offer text-decoration-none">{{ us.skill.name }}</a>{% empty %}<span class="small text-muted">Nothing yet</span>{% endfor %}
+        </div>
+        <div class="section-title mb-2">I want to learn</div>
+        <div class="d-flex flex-wrap gap-1">
+          {% for us in wants %}<a href="{{ us.skill.get_absolute_url }}" class="skill-badge want text-decoration-none">{{ us.skill.name }}</a>{% empty %}<span class="small text-muted">Nothing yet</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

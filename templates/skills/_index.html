@@ -1,0 +1,46 @@
+{% comment %}
+  The skill index: a sticky filter bar plus numbered rows, grouped by category in default order.
+  Needs the context from skills.views.index_context. Set form_action to submit filters elsewhere.
+{% endcomment %}
+<div class="sec-bar sticky" id="index">
+  <h2>{% if active_category %}{{ active_category.name }}{% else %}The Index{% endif %}<sup class="count">{{ skills|length }}</sup></h2>
+  <form class="filters" method="get" action="{{ form_action|default:'' }}" role="search">
+    <label class="f"><span>Category</span>
+      <span class="sel"><select name="category" onchange="this.form.submit()" aria-label="Category">
+        <option value="">All</option>
+        {% for c in categories %}<option value="{{ c.slug }}" {% if active_category and c.pk == active_category.pk %}selected{% endif %}>{{ c.name }} ({{ c.skill_count }})</option>{% endfor %}
+      </select></span>
+    </label>
+    <label class="f"><span>Sort</span>
+      <span class="sel"><select name="sort" onchange="this.form.submit()" aria-label="Sort">
+        {% for key, label in sort_options %}<option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select></span>
+    </label>
+    <label class="f"><span>Search</span>
+      <input id="ix-search" class="bare-input" type="search" name="q" value="{{ query }}" placeholder="Type or press /" aria-label="Search skills">
+    </label>
+    <button type="submit" class="visually-hidden">Apply</button>
+  </form>
+</div>
+
+<div class="ix-head" aria-hidden="true">
+  <span class="m">No.</span><span>Skill</span><span>Description</span><span>Teachers</span><span>Learners</span><span></span>
+</div>
+
+{% if skills %}
+  {% if grouped %}
+    {% regroup skills by category as groups %}
+    {% for group in groups %}
+      <a class="ix-group" href="{{ group.grouper.get_absolute_url }}#index">{{ group.grouper.name }}<sup class="count">{{ group.list|length }}</sup></a>
+      {% for skill in group.list %}{% include "skills/_index_row.html" %}{% endfor %}
+    {% endfor %}
+  {% else %}
+    {% for skill in skills %}{% include "skills/_index_row.html" %}{% endfor %}
+  {% endif %}
+{% else %}
+  <div class="ix-empty">No skills match{% if query %} “{{ query }}”{% endif %}. <a href="{% url 'skills:list' %}">Clear filters</a></div>
+{% endif %}
+
+{% if user.is_authenticated and my_wants %}
+  <p class="caps muted mt-3 mb-0"><span class="legend-dot"></span>&nbsp; On your learning list</p>
+{% endif %}

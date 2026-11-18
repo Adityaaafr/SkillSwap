@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load swap_tags %}
+{% block title %}Review {{ other.first_name|default:other.username }}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 720px">
+  <a href="{% url 'exchange:session_detail' session.pk %}" class="small">← Back to the session</a>
+  <h1 class="mt-2 mb-1">How was it with {{ other.first_name|default:other.username }}?</h1>
+  <p class="text-muted mb-4">{{ session.skill.name }} · {{ session.scheduled_at|date:"D d M Y" }} · {% if session.teacher_id == user.pk %}you taught{% else %}{{ other.first_name|default:other.username }} taught you{% endif %}</p>
+
+  <form method="post" class="card pt-3" novalidate>
+    {% csrf_token %}
+    {% include "partials/_form_errors.html" %}
+
+    <fieldset class="mb-4">
+      <legend class="form-label">{{ form.rating.label }}</legend>
+      {# Inputs are listed 5→1 and laid out right-to-left, so hovering a star lights it and every star before it. #}
+      <div class="star-picker" role="radiogroup" aria-label="Rating">
+        {% for radio in form.rating %}
+          <input type="radio" class="visually-hidden" name="{{ radio.data.name }}" value="{{ radio.data.value }}" id="{{ radio.id_for_label }}"{% if radio.data.selected %} checked{% endif %}>
+          <label for="{{ radio.id_for_label }}" title="{{ radio.data.value }} – {{ radio.choice_label }}"><span aria-hidden="true">★</span><span class="visually-hidden">{{ radio.data.value }} stars, {{ radio.choice_label }}</span></label>
+        {% endfor %}
+      </div>
+      <div class="caps muted mt-1">1 Bad · 2 Poor · 3 Okay · 4 Good · 5 Excellent</div>
+      {% for error in form.rating.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </fieldset>
+
+    {% with field=form.comment %}{% include "partials/_field.html" %}{% endwith %}
+
+    <div class="d-flex flex-wrap gap-3 align-items-center mt-2">
+      <button type="submit" class="btn btn-primary">Post review</button>
+      <a href="{% url 'exchange:session_detail' session.pk %}" class="btn btn-outline-secondary">Not now</a>
+    </div>
+    <p class="small text-muted mt-3 mb-0">Reviews can't be edited once posted, so take a moment.</p>
+  </form>
+</div>
+{% endblock %}
