@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SkillSwap
 
 **Learn together. Exchange knowledge. Grow together.**
@@ -279,3 +280,6 @@ Settings default to local development. To run it anywhere public, set these envi
 
 Then run `python manage.py collectstatic` and serve `staticfiles/` and `media/` from your web server.
 `python manage.py check --deploy` lists anything still missing.
+=======
+# SkillSwap
+>>>>>>> 5085e485959774657e98f7792f83cb1a3c2debef
